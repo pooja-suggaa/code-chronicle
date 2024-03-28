@@ -13,7 +13,7 @@ export const backendConfig = (): TypeInput => {
             apiKey: "wFqxUOpHjGs0-7Uy9KwlDEUvSq"
         },
         recipeList: [
-						// ThirdPartyEmailPassword recipe adds email password and social login to our project
+			// ThirdPartyEmailPassword recipe adds email password and social login to our project
             ThirdPartyEmailPassword.init({
                 /**
                  * These are development credentials provided by SuperTokens, make sure
@@ -55,7 +55,29 @@ export const backendConfig = (): TypeInput => {
                 ],
             }),
 			// Session recipe adds the functionality of managing users sessions and refreshing their sessions
-            Session.init(),
+            // For cookie based auth, the access token is not available on the frontend by default. In order to expose it, you need to set the exposeAccessTokenToFrontendInCookieBasedAuth config to true
+            Session.init({
+                exposeAccessTokenToFrontendInCookieBasedAuth: true,
+								/* adding custom claims to the JWT */
+                override: {
+                    functions: function (originalImplementation) {
+                        return {
+                            ...originalImplementation,
+                            createNewSession: async function (input) {
+                                input.accessTokenPayload = {
+                                    ...input.accessTokenPayload,
+                                    "https://hasura.io/jwt/claims": {
+                                        "x-hasura-user-id": input.userId,
+                                        "x-hasura-default-role": "user",
+                                        "x-hasura-allowed-roles": ["user"],
+                                    }
+                                };
+                                return originalImplementation.createNewSession(input);
+                            },
+                        };
+                    }
+                }
+            }),
         ],
     };
 }
