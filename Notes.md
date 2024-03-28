@@ -100,3 +100,49 @@ Here's how you can generate a public key from the provided JSON:
 Decode the base64 encoded key.
 The decoded key is the public key.
 
+
+```tsx
+"use client";
+
+import { ApolloClient, ApolloLink, HttpLink } from "@apollo/client";
+import {
+  ApolloNextAppProvider,
+  NextSSRInMemoryCache,
+  SSRMultipartLink,
+} from "@apollo/experimental-nextjs-app-support/ssr";
+
+function makeClient() {
+  const httpLink = new HttpLink({
+    uri: "https://exciting-kitten-28.hasura.app/v1/graphql",
+    headers: {
+      "x-hasura-admin-secret": "vm3bwuLmItd46XbUgtuHYmAfk68MjHfCVDE1cU1isq7udlBb2IiBrtilnug1bGp4",
+    },
+  });
+
+  return new ApolloClient({
+    cache: new NextSSRInMemoryCache(),
+    link:
+      typeof window === "undefined"
+        ? ApolloLink.from([
+            new SSRMultipartLink({
+              stripDefer: true,
+            }),
+            httpLink,
+          ])
+        : httpLink,
+  });
+}
+
+interface ApolloWrapperProps {
+  children: React.ReactNode;
+}
+
+export function ApolloWrapper({ children }: ApolloWrapperProps) {
+  return (
+    <ApolloNextAppProvider makeClient={makeClient}>
+      {children}
+    </ApolloNextAppProvider>
+  );
+}
+
+```

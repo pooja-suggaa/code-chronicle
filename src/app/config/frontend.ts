@@ -4,6 +4,10 @@ import Session from 'supertokens-auth-react/recipe/session';
 import { appInfo } from './appinfo'
 import { useRouter } from "next/navigation";
 import { SuperTokensConfig } from 'supertokens-auth-react/lib/build/types'
+import { ensureSuperTokensInit } from './backend';
+
+// call ensureSuperTokensInit to make sure SuperTokens is always initialised when any of the SuperTokens API routes are called
+ensureSuperTokensInit();
 
 const routerInfo: { router?: ReturnType<typeof useRouter>; pathName?: string } =
   {};
