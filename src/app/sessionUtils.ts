@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { serialize } from 'cookie';
 import { NextRequest, NextResponse } from 'next/server';
 import Session, { SessionContainer, VerifySessionOptions } from "supertokens-node/recipe/session";
 import { ensureSuperTokensInit } from './config/backend';
@@ -56,4 +57,61 @@ export async function getSSRSession(
           throw err;
       }
   }
+}
+
+/* 
+withSession is a utility function we will use in all our APIs that require sessions
+This is used to add a session guard to each API route
+This is applicable for when the frontend calls an API in the /app/api folder.
+
+The withSession helper function will pass the session object in the callback which we can use to read user information
+The withSession guard will return Status 401 if the session does not exist or has expired, Stauts 403 if the session claims fail their validation
+*/
+
+export async function withSession(
+  request: NextRequest,
+  handler: (session: SessionContainer | undefined) => Promise<NextResponse>,
+  options?: VerifySessionOptions
+) {
+  let { session, nextResponse, baseResponse } = await getSSRSession(request, options);
+  if (nextResponse) {
+      return nextResponse;
+  }
+
+  /* 
+    If session exists, call the handler function which will be our actual API logic
+  */
+  let userResponse = await handler(session);
+
+  let didAddCookies = false;
+  let didAddHeaders = false;
+
+  for (const respCookie of baseResponse.cookies) {
+      didAddCookies = true;
+      userResponse.headers.append(
+          "Set-Cookie",
+          serialize(respCookie.key, respCookie.value, {
+              domain: respCookie.domain,
+              expires: new Date(respCookie.expires),
+              httpOnly: respCookie.httpOnly,
+              path: respCookie.path,
+              sameSite: respCookie.sameSite,
+              secure: respCookie.secure,
+          })
+      );
+  }
+
+  baseResponse.headers.forEach((value, key) => {
+      didAddHeaders = true;
+      userResponse.headers.set(key, value);
+  });
+
+  if (didAddCookies || didAddHeaders) {
+      if (!userResponse.headers.has("Cache-Control")) {
+          // This is needed for production deployments with Vercel
+          userResponse.headers.set("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
+      }
+  }
+
+  return userResponse;
 }

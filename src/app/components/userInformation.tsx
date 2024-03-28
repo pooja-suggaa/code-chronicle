@@ -4,8 +4,9 @@ The reason it's considered a server-side component is because it's executed on t
 */
 import { getSSRSession } from '../sessionUtils';
 import { TryRefreshComponent } from './tryRefreshClientComponent';
-// import styles from '../../styles/Home.module.css';
+import styles from '../page.module.css';
 import { redirect } from 'next/navigation'
+import { SignOut } from './signOut';
 
 export async function UserInformation() {
   const { session, hasToken } = await getSSRSession();
@@ -17,11 +18,30 @@ export async function UserInformation() {
     return <TryRefreshComponent />;
   }
 
+  /* make a network request to fetch the user’s email */
+  const userEmailResponse = await fetch('http://localhost:3000/api/user', {
+    headers: {
+      Authorization: 'Bearer ' + session.getAccessToken(),
+    },
+  });
+
+  let email = "";
+  if (userEmailResponse.status !== 200) {
+    email = "error with status " + userEmailResponse.status;
+  } else {
+    email = (await userEmailResponse.json()).email;
+  }
+
   return (
-    // <p className={styles.description}>
-    <p>
-      userId: {session.getUserId()}
-      Access token: {session.getAccessToken()}
-    </p>
+    <div>
+      <div>
+        <p className={styles.description}>
+          userId: {session.getUserId()}
+          email: {email}
+          Access token: {session.getAccessToken()}
+        </p>
+      </div>
+      <SignOut/>
+    </div>
   );
 }
