@@ -7,6 +7,7 @@ import { TryRefreshComponent } from './tryRefreshClientComponent';
 import styles from '../page.module.css';
 import { redirect } from 'next/navigation'
 import { SignOut } from './signOut';
+import hostname from '../config/host';
 
 export async function UserInformation() {
   const { session, hasToken } = await getSSRSession();
@@ -19,7 +20,7 @@ export async function UserInformation() {
   }
 
   /* make a network request to fetch the user’s email */
-  const userEmailResponse = await fetch('http://localhost:3000/api/user', {
+  const userEmailResponse = await fetch(`${hostname}/api/user`, {
     headers: {
       Authorization: 'Bearer ' + session.getAccessToken(),
     },
