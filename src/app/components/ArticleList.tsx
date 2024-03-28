@@ -1,29 +1,46 @@
-import { gql } from "@apollo/client";
-import createApolloClient from "../utilities/ApolloClient";
+import axios from "axios";
+import { getSSRSession } from '../sessionUtils';
 
 export async function ArticleList() {
-  const client = createApolloClient();
-  
-  const { data } = await client.query({
-    query: gql`
-      query listArticles {
-        articles {
-          id
-          name
-          author
-          content
-          tags
-        }
-      }
-    `,
-  });
+  const { session } = await getSSRSession();
 
-  console.log(`----------Listing articles----------`);
-  console.log(data);
+  if (!session) {
+    console.log('No session in article list component')
+    return <div></div>
+  }
+
+  const accessToken = session.getAccessToken();
+  console.log(" 🚀-----accessToken in articleList-----", accessToken);
+
+  const data = await axios({
+    url: 'https://exciting-kitten-28.hasura.app/v1/graphql',
+    method: 'post',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    data: JSON.stringify({
+      query: `
+        query listArticles {
+          articles {
+            id
+            name
+            author
+            content
+            tags
+          }
+        }
+        `
+    })
+  })
+
+  console.log('------data-----', data);
 
   return (
     <div>
-      
+      <p>Article list here</p>
+      <p>ArticleList access token - {accessToken}</p>
+      <p>{JSON.stringify(data.data)}</p>
     </div>
   )
 }
